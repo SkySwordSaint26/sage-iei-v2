@@ -338,10 +338,6 @@ export default function Login() {
       <div className="login-header">
         <div className="badge-hud">ACCESS TERMINAL // PARTICIPANT PORTAL</div>
         <h2>PARTICIPANT LOGIN</h2>
-        <p className="login-header-sub">
-          Sign in with your College ID or Registered Email to access verified event passes,
-          live schedules, team allocations, and entry credentials.
-        </p>
         <div className="login-tip-banner">
           <span>⚡</span>
           <span>First time signing in? Your initial password is your <strong>College ID</strong>.</span>
@@ -358,8 +354,8 @@ export default function Login() {
               <span className="login-terminal-dot"></span>
               <span className="login-terminal-dot"></span>
             </div>
-            <span>PORTAL_AUTH // SECURE_SOCKET</span>
-            <span style={{ color: 'var(--cyan)' }}>SYS.ONLINE</span>
+            {/* <span>PORTAL_AUTH // SECURE_SOCKET</span> */}
+
           </div>
 
           <div className="login-terminal-body">
@@ -381,14 +377,13 @@ export default function Login() {
             <form onSubmit={handleLoginSubmit}>
               <div className="form-group" style={{ marginBottom: '1.25rem' }}>
                 <label className="form-label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>COLLEGE ID OR REGISTERED EMAIL</span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--cyan)', textTransform: 'none' }}>e.g. 23CP062 or email</span>
+                  <span>REGISTERED EMAIL</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Enter College ID (e.g. 23CP062) or Email"
+                    placeholder="Enter College Email"
                     required
                     style={{ paddingLeft: '2.75rem' }}
                     value={identifier}
