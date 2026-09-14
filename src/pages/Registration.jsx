@@ -223,12 +223,6 @@ export default function Registration() {
           <div className="form-group"><label className="form-label">Registered Email</label><input type="email" name="email" className="form-input" placeholder="e.g. name@example.com" required value={formData.email} onChange={handleChange} /></div>
 
           {/* EVENT SELECTION SECTIONS */}
-          {formData.academicYear === '' && (
-            <div className="glass-card" style={{ border: '1px dashed rgba(255,255,255,0.1)', textAlign: 'center', padding: '2rem 1rem', background: 'rgba(255,255,255,0.01)' }}>
-              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', opacity: 0.5 }}>⚡</div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 0 }}>Please select your <strong>Academic Year</strong> to view applicable event modules.</p>
-            </div>
-          )}
 
           {isPG && (
             <div className="form-group">
@@ -305,8 +299,8 @@ export default function Registration() {
             <label className="form-label">Payment Mode</label>
             <select name="paymentMethod" className="form-select" required value={formData.paymentMethod} onChange={handleChange}>
               <option value="">-- Select Mode --</option>
-              <option value="cash">Cash at Volunteer Desk</option>
-              <option value="online">Online UPI / Bank Transfer</option>
+              <option value="cash">Cash</option>
+              <option value="online">Online UPI</option>
             </select>
           </div>
 
@@ -334,10 +328,9 @@ export default function Registration() {
                 <label className="form-label">Authorized Desk</label>
                 <select name="volunteerClub" className="form-select" value={formData.volunteerClub} onChange={handleChange} required>
                   <option value="">-- Select Club --</option>
-                  <option value="ieiteambvm.jarvis@gmail.com">IE(I) Mechanical (Jarvis)</option>
-                  <option value="trf.bvm@gmail.com">The Robotics Forum (TRF)</option>
-                  <option value="tpc.bvm@gmail.com">Training & Placement Cell</option>
-                  <option value="rs.bvm@gmail.com">BVM RS / Central Comm.</option>
+                  <option value="ieiteambvm.jarvis@gmail.com">IE(I) Mechanical</option>
+                  <option value="trf.bvm@gmail.com">TRS</option>
+                  <option value="rs.bvm@gmail.com">SAEINDIA</option>
                 </select>
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
