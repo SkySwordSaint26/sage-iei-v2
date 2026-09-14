@@ -1,0 +1,97 @@
+/* SAGE 1.0 — Design System Tokens v2 */
+:root {
+  /* ── Backgrounds ───────────────────────────────── */
+  --bg-base:           #07090e;
+  --bg-surface:        #0b1322;
+  --bg-card:           rgba(11, 19, 34, 0.72);
+  --bg-card-hover:     rgba(16, 28, 52, 0.90);
+  --bg-glass:          rgba(7, 10, 18, 0.78);
+  --bg-overlay:        rgba(4, 6, 12, 0.96);
+
+  /* ── Cyan — Primary Accent ─────────────────────── */
+  --cyan:              #00ceff;
+  --cyan-bright:       #44e8ff;
+  --cyan-glow:         rgba(0, 206, 255, 0.35);
+  --cyan-dim:          rgba(0, 206, 255, 0.08);
+  --cyan-border:       rgba(0, 206, 255, 0.22);
+  --cyan-border-hi:    rgba(0, 206, 255, 0.60);
+  /* legacy aliases (keep old code working) */
+  --cyan-primary:      #00ceff;
+  --emerald-accent:    #00e59b;
+
+  /* ── Blue — Secondary ──────────────────────────── */
+  --blue:              #1a6eff;
+  --blue-glow:         rgba(26, 110, 255, 0.30);
+  --blue-dim:          rgba(26, 110, 255, 0.08);
+
+  /* ── Orange — Energy Accent ────────────────────── */
+  --orange:            #ff5e1a;
+  --orange-glow:       rgba(255, 94, 26, 0.30);
+  --orange-dim:        rgba(255, 94, 26, 0.08);
+
+  /* ── Emerald — MISSION: HIRE / Success ─────────── */
+  --emerald:           #00e59b;
+  --emerald-glow:      rgba(0, 229, 155, 0.25);
+  --emerald-dim:       rgba(0, 229, 155, 0.08);
+
+  /* ── Violet — NEXT GEN PROTOCOL / Ideathon ──────── */
+  --violet:            #8b3dff;
+  --violet-secondary:  #8b3dff;
+  --violet-glow:       rgba(139, 61, 255, 0.30);
+  --violet-dim:        rgba(139, 61, 255, 0.08);
+
+  /* ── Text ──────────────────────────────────────── */
+  --text-main:         #edf2ff;
+  --text-muted:        #7b90aa;
+  --text-dim:          #3e5468;
+
+  /* ── Borders ───────────────────────────────────── */
+  --border-color:      rgba(0, 206, 255, 0.12);
+  --border-active:     rgba(0, 206, 255, 0.55);
+  --border-subtle:     rgba(0, 206, 255, 0.08);
+  --border-medium:     rgba(0, 206, 255, 0.22);
+  --border-strong:     rgba(0, 206, 255, 0.55);
+
+  /* ── Typography ────────────────────────────────── */
+  --font-heading:      'Orbitron', monospace;
+  --font-ui:           'Rajdhani', sans-serif;
+  --font-body:         'Inter', system-ui, sans-serif;
+
+  /* ── Blur / Glass ──────────────────────────────── */
+  --backdrop-blur:     blur(20px);
+  --blur-glass:        blur(20px);
+  --blur-heavy:        blur(40px);
+
+  /* ── Shadows ───────────────────────────────────── */
+  --shadow-card:       0 4px 32px rgba(0, 0, 0, 0.50);
+  --box-shadow-hud:    0 0 24px rgba(0, 206, 255, 0.18), 0 0 60px rgba(0, 206, 255, 0.06);
+  --box-shadow-glow:   0 0 40px rgba(0, 206, 255, 0.25);
+  --shadow-glow-sm:    0 0 12px rgba(0, 206, 255, 0.35);
+  --shadow-float:      0 16px 48px rgba(0, 0, 0, 0.65);
+
+  /* ── Layout ────────────────────────────────────── */
+  --nav-height:        72px;
+  --max-width:         1280px;
+  --gutter:            1.5rem;
+  --section-py:        5rem;
+
+  /* ── Border Radius ─────────────────────────────── */
+  --r-sm:    4px;
+  --r-md:    8px;
+  --r-lg:    16px;
+  --r-xl:    24px;
+  --r-full:  9999px;
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:  16px;
+  --radius-pill: 9999px;
+
+  /* ── Transitions ───────────────────────────────── */
+  --t-fast:   160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-normal: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  --t-slow:   520ms cubic-bezier(0.16, 1, 0.3, 1);
+  --t-spring: 640ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* legacy aliases */
+  --transition-fast:   160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 320ms cubic-bezier(0.4, 0, 0.2, 1);
+}
