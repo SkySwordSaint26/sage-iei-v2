@@ -19,13 +19,17 @@ export default function Events() {
 
   const handleCloseEvent = useCallback(() => {
     setActiveEvent(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
 
   useEffect(() => {
     if (activeEvent && panelRef.current) {
-      panelRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const timer = setTimeout(() => {
+        const navbarOffset = -90; // Offset for fixed navbar height & padding
+        const element = panelRef.current;
+        const targetY = element.getBoundingClientRect().top + window.scrollY + navbarOffset;
+        window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [activeEvent]);
 
@@ -66,7 +70,7 @@ export default function Events() {
       <div 
         className={`event-detail-panel ${activeEvent ? 'is-open' : ''}`} 
         id="event-detail-panel" 
-        style={{ marginBottom: '3rem' }}
+        style={{ marginBottom: '3rem', scrollMarginTop: '90px' }}
         ref={panelRef}
       >
         <div className="edp-inner" id="edp-inner">
