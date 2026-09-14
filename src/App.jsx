@@ -4,8 +4,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { useScrollReveal } from './hooks/useScrollReveal';
 
-// Lazy-loaded Pages for optimal initial load time
-const Home = lazy(() => import('./pages/Home'));
+import Home from './pages/Home';
 const About = lazy(() => import('./pages/About'));
 const Events = lazy(() => import('./pages/Events'));
 const EventDetail = lazy(() => import('./pages/EventDetail'));

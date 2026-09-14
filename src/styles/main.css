@@ -195,6 +195,14 @@ a:hover { color: #fff; }
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
 
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
 /* ── Page Section Wrapper ───────────────────────────────────────────────── */
 .page-section {
   padding: var(--section-py) 0;
