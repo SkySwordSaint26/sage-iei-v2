@@ -5,11 +5,11 @@ import Footer from './components/Footer';
 import { useScrollReveal } from './hooks/useScrollReveal';
 
 import Home from './pages/Home';
+import Login from './pages/Login';
 const About = lazy(() => import('./pages/About'));
 const Events = lazy(() => import('./pages/Events'));
 const EventDetail = lazy(() => import('./pages/EventDetail'));
 const Registration = lazy(() => import('./pages/Registration'));
-const Login = lazy(() => import('./pages/Login'));
 const Contact = lazy(() => import('./pages/Contact'));
 
 function RouteLoadingFallback() {
@@ -52,7 +52,7 @@ function AppContent() {
     <>
       <Navbar />
       
-      <main id="app" className="page-wrapper" data-route={getRouteKey()}>
+      <main id="app" key={location.pathname} className="page-wrapper" data-route={getRouteKey()}>
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />

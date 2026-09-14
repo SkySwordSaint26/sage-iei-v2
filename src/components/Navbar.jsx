@@ -1,20 +1,57 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { auth } from '../firebase-config.js';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
-const NAV_ROUTES = [
-  { id: 'home',         label: 'Home',     path: '/home' },
-  { id: 'about',        label: 'About',    path: '/about' },
-  { id: 'events',       label: 'Events',   path: '/events' },
-  { id: 'contact',      label: 'Contact',  path: '/contact' },
-  { id: 'login',        label: 'Login',    path: '/login' },
-  { id: 'registration', label: 'Register', path: '/registration', cta: true },
-];
+const SAGE_AUTH_SESSION_KEY = 'sage_participant_session';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    try {
+      return Boolean(localStorage.getItem(SAGE_AUTH_SESSION_KEY) || sessionStorage.getItem(SAGE_AUTH_SESSION_KEY));
+    } catch {
+      return false;
+    }
+  });
+
   const isScrolledRef = useRef(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // Track session and auth changes
+  useEffect(() => {
+    const syncAuthStatus = () => {
+      try {
+        const hasSession = Boolean(
+          localStorage.getItem(SAGE_AUTH_SESSION_KEY) || sessionStorage.getItem(SAGE_AUTH_SESSION_KEY)
+        );
+        setIsLoggedIn(hasSession);
+      } catch {
+        setIsLoggedIn(false);
+      }
+    };
+
+    syncAuthStatus();
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setIsLoggedIn(true);
+      } else {
+        syncAuthStatus();
+      }
+    });
+
+    window.addEventListener('sage-auth-change', syncAuthStatus);
+    window.addEventListener('storage', syncAuthStatus);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('sage-auth-change', syncAuthStatus);
+      window.removeEventListener('storage', syncAuthStatus);
+    };
+  }, []);
 
   useEffect(() => {
     let ticking = false;
@@ -38,6 +75,39 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.warn("Logout error:", err);
+    }
+
+    localStorage.removeItem(SAGE_AUTH_SESSION_KEY);
+    sessionStorage.removeItem(SAGE_AUTH_SESSION_KEY);
+    setIsLoggedIn(false);
+    window.dispatchEvent(new Event('sage-auth-change'));
+    setIsMobileOpen(false);
+    navigate('/login');
+  };
+
+  const navRoutes = useMemo(() => {
+    const base = [
+      { id: 'home',    label: 'Home',    path: '/home' },
+      { id: 'about',   label: 'About',   path: '/about' },
+      { id: 'events',  label: 'Events',  path: '/events' },
+      { id: 'contact', label: 'Contact', path: '/contact' },
+    ];
+
+    if (isLoggedIn) {
+      base.push({ id: 'login', label: 'Portal', path: '/login' });
+    } else {
+      base.push({ id: 'login', label: 'Login', path: '/login' });
+      base.push({ id: 'registration', label: 'Register', path: '/registration', cta: true });
+    }
+
+    return base;
+  }, [isLoggedIn]);
+
   const activeRoute = useMemo(() => {
     const path = location.pathname;
     if (path === '/' || path === '/home') return 'home';
@@ -49,7 +119,6 @@ export default function Navbar() {
     return 'home';
   }, [location.pathname]);
 
-
   return (
     <>
       <header id="navbar-root" className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
@@ -60,7 +129,7 @@ export default function Navbar() {
           </Link>
 
           <ul className="nav-links">
-            {NAV_ROUTES.map(r => (
+            {navRoutes.map(r => (
               <li key={r.id}>
                 <Link
                   to={r.path}
@@ -70,6 +139,19 @@ export default function Navbar() {
                 </Link>
               </li>
             ))}
+
+            {isLoggedIn && (
+              <li>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="nav-link nav-logout-btn"
+                  title="Sign out of your terminal session"
+                >
+                  LOGOUT
+                </button>
+              </li>
+            )}
           </ul>
 
           <button
@@ -89,7 +171,7 @@ export default function Navbar() {
       </header>
 
       <div id="mobile-menu-root" className={`mobile-nav-drawer ${isMobileOpen ? 'is-open' : ''}`}>
-        {NAV_ROUTES.map(r => (
+        {navRoutes.map(r => (
           <Link
             key={r.id}
             to={r.path}
@@ -99,6 +181,16 @@ export default function Navbar() {
             {r.label}
           </Link>
         ))}
+
+        {isLoggedIn && (
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mobile-nav-link mobile-logout-btn"
+          >
+            LOGOUT
+          </button>
+        )}
       </div>
     </>
   );
