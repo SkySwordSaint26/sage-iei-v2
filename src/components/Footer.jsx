@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
+import logoText from '../assets/SAGE TEXT METALLIC BLUE.png';
 
 const currentYear = new Date().getFullYear();
 
@@ -10,8 +11,7 @@ export default memo(function Footer() {
         <div className="footer-grid">
           <div>
             <Link to="/home" className="nav-brand" style={{ marginBottom: '1rem', textDecoration: 'none' }}>
-              <div className="brand-icon-arc"></div>
-              <span>SAGE <span style={{ color: 'var(--cyan-primary)' }}>1.0</span></span>
+              <img src={logoText} alt="SAGE" style={{ height: '24px', width: 'auto' }} />
             </Link>
             <p style={{ maxWidth: '400px', fontSize: '0.9rem' }}>
               The next-generation national engineering symposium. Empowering future innovators through competitive hackathons, robotics, AI challenges, and expert workshops.
