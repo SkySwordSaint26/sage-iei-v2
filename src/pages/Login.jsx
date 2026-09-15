@@ -206,10 +206,10 @@ export default function Login() {
     setLoginFeedback(null);
 
     try {
-      // Configure Firebase auth persistence based on Remember Me
-      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
+      // Start setting persistence in the background immediately
+      const persistencePromise = setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
 
-      // Resolve login email (supports entering either College ID or Email)
+      // Resolve login email concurrently if needed
       let loginEmail = trimmedId;
       let cachedProfileDoc = null;
       
@@ -227,6 +227,8 @@ export default function Login() {
         loginEmail = cachedProfileDoc.data().email;
       }
 
+      // Ensure persistence is applied BEFORE signing in
+      await persistencePromise;
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, trimmedPass);
       
       let userDoc = cachedProfileDoc;
