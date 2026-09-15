@@ -67,6 +67,29 @@ export default function Login() {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [resetFeedback, setResetFeedback] = useState(null);
+  const [resetCooldown, setResetCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer;
+    if (resetCooldown > 0) {
+      timer = setInterval(() => {
+        setResetCooldown(c => c - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resetCooldown]);
+
+  useEffect(() => {
+    if (showForgotModal) {
+      const lastReset = localStorage.getItem('sage_last_reset_time');
+      if (lastReset) {
+        const diff = Math.floor((Date.now() - parseInt(lastReset, 10)) / 1000);
+        if (diff < 60) {
+          setResetCooldown(60 - diff);
+        }
+      }
+    }
+  }, [showForgotModal]);
 
   // Change Password state
   const [showChangePassModal, setShowChangePassModal] = useState(false);
@@ -273,11 +296,23 @@ export default function Login() {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     if (!resetEmail) return;
+
+    if (resetCooldown > 0) {
+      setResetFeedback(`
+        <div class="glass-card" style="border-color: #ff4d4d; color: #ff4d4d; padding: 0.85rem 1rem; border-radius: var(--r-sm); font-size: 0.85rem; text-align: center;">
+          ✕ Please wait ${resetCooldown} seconds before requesting another reset link.
+        </div>
+      `);
+      return;
+    }
+
     setResetLoading(true);
     setResetFeedback(null);
 
     try {
       await sendPasswordResetEmail(auth, resetEmail);
+      localStorage.setItem('sage_last_reset_time', Date.now().toString());
+      setResetCooldown(60);
       setResetFeedback(`
         <div class="glass-card" style="border-color: #00e59b; background: rgba(0, 229, 155, 0.08); color: #00e59b; padding: 0.85rem 1rem; border-radius: var(--r-sm); font-size: 0.85rem; text-align: center;">
           ✓ Password reset link dispatched! Please check your email inbox and spam folder.
@@ -587,8 +622,8 @@ export default function Login() {
                 <input type="email" className="form-input" placeholder="e.g. user@example.com" required value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} />
               </div>
               {resetFeedback && <div style={{ marginBottom: '1.25rem' }} dangerouslySetInnerHTML={{ __html: resetFeedback }} />}
-              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={resetLoading}>
-                {resetLoading ? 'TRANSMITTING RESET LINK...' : 'SEND RESET LINK →'}
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={resetLoading || resetCooldown > 0}>
+                {resetLoading ? 'TRANSMITTING RESET LINK...' : resetCooldown > 0 ? `RETRY IN ${resetCooldown}s` : 'SEND RESET LINK →'}
               </button>
             </form>
           </div>
