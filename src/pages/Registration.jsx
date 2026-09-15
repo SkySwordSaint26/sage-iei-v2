@@ -1,10 +1,10 @@
 import React, { useState, useRef, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase-config.js';
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { collection, query, where, getDocs, doc, setDoc } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser } from "firebase/auth";
+import { collection, query, where, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { handleFirebaseError } from '../services/error-service.js';
-import { verifyVolunteerDeskAuth } from '../services/volunteer-auth.js';
+import { verifyVolunteer } from '../services/volunteer-auth.js';
 import { EVENTS_DATA } from '../data/events-data.js';
 
 function calculateEventFee(count) {
@@ -22,7 +22,7 @@ const ALL_NON_TECH_OPTIONS = EVENTS_DATA.filter(e => e.category === 'non-tech');
 
 export default function Registration() {
   const [formData, setFormData] = useState({
-    name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerClub: '', volunteerPass: ''
+    name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: '', volunteerPass: ''
   });
   
   const [selectedTechEvents, setSelectedTechEvents] = useState([]);
@@ -112,8 +112,8 @@ export default function Registration() {
       eventsList = [singleEvent];
     }
 
-    if (!formData.volunteerClub || !formData.volunteerPass) {
-      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ DESK AUTHORIZATION REQUIRED</h3><p style="color:#91a1bd;">Please select a club and enter the password.</p></div>`);
+    if (!formData.volunteerEmail || !formData.volunteerPass) {
+      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ VOLUNTEER AUTHORIZATION REQUIRED</h3><p style="color:#91a1bd;">Please enter volunteer email and password.</p></div>`);
       feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -132,14 +132,22 @@ export default function Registration() {
       let screenshotData = '';
       if (screenshotFile) {
         screenshotData = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.onerror = () => reject(new Error('Unable to read screenshot.'));
-          reader.readAsDataURL(screenshotFile);
+          const img = new Image();
+          img.onload = () => {
+            const MAX_WIDTH = 800;
+            let width = img.width, height = img.height;
+            if (width > MAX_WIDTH) { height = Math.round(height * MAX_WIDTH / width); width = MAX_WIDTH; }
+            const canvas = document.createElement('canvas');
+            canvas.width = width; canvas.height = height;
+            canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.6));
+          };
+          img.onerror = () => reject(new Error('Unable to read screenshot.'));
+          img.src = URL.createObjectURL(screenshotFile);
         });
       }
 
-      const deskAuth = await verifyVolunteerDeskAuth(formData.volunteerClub, formData.volunteerPass);
+      const volunteer = await verifyVolunteer(formData.volunteerEmail, formData.volunteerPass);
 
       const idQuery = query(collection(db, 'users'), where('idNumber', '==', formData.idNumber));
       if (!(await getDocs(idQuery)).empty) throw new Error('A participant with this College ID is already registered.');
@@ -148,30 +156,60 @@ export default function Registration() {
       if (!(await getDocs(phoneQuery)).empty) throw new Error('A participant with this Contact Number is already registered.');
 
       const initialPassword = formData.idNumber.length < 6 ? formData.idNumber.padEnd(6, '0') : formData.idNumber;
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, initialPassword);
+      
+      let userCredential;
+      try {
+        userCredential = await createUserWithEmailAndPassword(auth, formData.email, initialPassword);
+      } catch (authErr) {
+        if (authErr.code === 'auth/email-already-in-use') {
+          // Self-healing: Check if this is a ghost account (Auth exists but no Firestore doc)
+          try {
+            userCredential = await signInWithEmailAndPassword(auth, formData.email, initialPassword);
+            const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+            if (userDoc.exists()) {
+              // Real registration already exists
+              throw new Error('A participant with this Email is already registered.');
+            }
+            // If we reach here, it's a ghost account! Proceed to create the Firestore doc.
+          } catch {
+            // If sign in fails, or any other error occurs, fallback to standard error
+            throw new Error('A participant with this Email is already registered.');
+          }
+        } else {
+          throw authErr;
+        }
+      }
 
-      await setDoc(doc(db, 'users', userCredential.user.uid), {
-        fullName: formData.name, idNumber: formData.idNumber, contactNumber: formData.contactNumber,
-        academicYear: formData.academicYear, email: formData.email, event: eventsList.join(', '), events: eventsList,
-        paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
-        screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
-        registeredAtDesk: true, authorizedByClub: deskAuth.club.name, authorizedByEmail: deskAuth.club.email,
-        authorizedClubShort: deskAuth.club.shortName, initialPasswordSet: true, createdAt: new Date().toISOString()
-      });
+      try {
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          fullName: formData.name, idNumber: formData.idNumber, contactNumber: formData.contactNumber,
+          academicYear: formData.academicYear, email: formData.email, event: eventsList.join(', '), events: eventsList,
+          paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
+          screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
+          volunteerUid: volunteer.uid, authorizedByVolunteer: volunteer.name, authorizedByClub: volunteer.club,
+          initialPasswordSet: true, createdAt: new Date().toISOString()
+        });
+      } catch (firestoreErr) {
+        // Rollback: delete the Auth account so it doesn't become a ghost registration
+        if (userCredential?.user) {
+          await deleteUser(userCredential.user).catch(() => {});
+        }
+        throw firestoreErr;
+      }
 
       setFeedback(`
         <div class="glass-card" style="border-color:var(--emerald-accent); text-align:center; margin-top:1.5rem;">
-          <div class="badge-hud" style="color:var(--emerald-accent); border-color:rgba(0,229,155,0.4); background:rgba(0,229,155,0.08);">✓ DESK REGISTRATION AUTHORIZED</div>
+          <div class="badge-hud" style="color:var(--emerald-accent); border-color:rgba(0,229,155,0.4); background:rgba(0,229,155,0.08);">✓ REGISTRATION AUTHORIZED</div>
           <h3 style="color:var(--emerald-accent); margin-top:1rem;">✓ REGISTRATION SUCCESSFUL</h3>
           <p style="color:#fff;">Thank you <strong>${formData.name}</strong>!</p>
           <div style="margin-top:1.25rem; color:var(--cyan-primary); text-align: left; background: rgba(0,206,255,0.04); padding: 1rem 1.25rem; border-radius: var(--r-sm); border: 1px solid var(--cyan-border);">
-            <p style="margin-bottom: 0.5rem; color:#00e59b; font-size:0.88rem;"><strong>🛡️ Verified Desk:</strong> ${deskAuth.club.name}</p>
+            <p style="margin-bottom: 0.5rem; color:#00e59b; font-size:0.88rem;"><strong>🛡️ Authorized by:</strong> ${volunteer.name} (${volunteer.club})</p>
             <p style="margin-bottom: 0.5rem;"><strong>Registered Events:</strong> ${eventsList.join(', ')}</p>
             <p style="margin-bottom: 0.25rem;"><strong>Registration Fee:</strong> ₹${feeAmount}</p>
           </div>
         </div>
       `);
-      setFormData({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerClub: '', volunteerPass: '' });
+      setFormData({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: '', volunteerPass: '' });
       setSelectedTechEvents([]); setSelectedNonTechEvents([]); setSingleEvent(''); setScreenshotFile(null);
       formRef.current?.reset();
     } catch (err) {
@@ -306,8 +344,8 @@ export default function Registration() {
 
           {formData.paymentMethod === 'online' && (
             <div className="glass-card" style={{ padding: '1.5rem', marginBottom: '1.5rem', border: '1px solid var(--cyan-border)' }}>
-              <h4 style={{ color: '#fff', marginBottom: '1rem' }}>ONLINE PAYMENT DETAILS</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Scan the QR code at the desk or transfer to the provided UPI ID.</p>
+              <h4 style={{ color: '#fff', marginBottom: '1rem' }}>ONLINE PAYMENT VERIFICATION</h4>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Ask the volunteer to show their UPI QR. Pay exactly <strong style={{ color: '#00e59b' }}>₹{feeAmount}</strong>, then enter the details below.</p>
               <div className="form-group">
                 <label className="form-label">Transaction ID / UTR</label>
                 <input type="text" name="transactionId" className="form-input" placeholder="e.g. 123456789012" value={formData.transactionId} onChange={handleChange} required />
@@ -321,22 +359,17 @@ export default function Registration() {
 
           {/* VOLUNTEER AUTH */}
           <div className="glass-card" style={{ padding: '1.5rem', border: '1px solid rgba(255,152,0,0.3)', background: 'rgba(255,152,0,0.03)', marginTop: '2.5rem' }}>
-            <h4 style={{ color: '#ff9800', marginBottom: '0.5rem' }}>🛡️ VOLUNTEER DESK AUTHORIZATION</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>Must be filled by an authorized organizing committee member.</p>
+            <h4 style={{ color: '#ff9800', marginBottom: '0.5rem' }}>🛡️ VOLUNTEER AUTHORIZATION</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '1.25rem' }}>Must be filled by an authorized volunteer to complete registration.</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Authorized Desk</label>
-                <select name="volunteerClub" className="form-select" value={formData.volunteerClub} onChange={handleChange} required>
-                  <option value="">-- Select Club --</option>
-                  <option value="ieiteambvm.jarvis@gmail.com">IE(I) Mechanical</option>
-                  <option value="trf.bvm@gmail.com">TRS</option>
-                  <option value="rs.bvm@gmail.com">SAEINDIA</option>
-                </select>
+                <label className="form-label">Volunteer Email</label>
+                <input type="email" name="volunteerEmail" className="form-input" placeholder="volunteer@example.com" value={formData.volunteerEmail} onChange={handleChange} required />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Desk Password</label>
+                <label className="form-label">Volunteer Password</label>
                 <div style={{ position: 'relative' }}>
-                  <input type={showVolunteerPass ? 'text' : 'password'} name="volunteerPass" className="form-input" placeholder="Enter PIN" value={formData.volunteerPass} onChange={handleChange} required />
+                  <input type={showVolunteerPass ? 'text' : 'password'} name="volunteerPass" className="form-input" placeholder="Enter password" value={formData.volunteerPass} onChange={handleChange} required />
                   <button type="button" onClick={() => setShowVolunteerPass(!showVolunteerPass)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'var(--text-muted)' }}>
                     {showVolunteerPass ? 'Hide' : 'Show'}
                   </button>
