@@ -25,3 +25,4 @@ dist-ssr
 
 _legacy
 video/
+serviceAccountKey.json
