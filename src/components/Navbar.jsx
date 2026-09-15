@@ -4,7 +4,6 @@ import { auth } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 import logoIcon from '../assets/Only S metallic Blue.png';
-import logoText from '../assets/SAGE TEXT METALLIC BLUE.png';
 
 const SAGE_AUTH_SESSION_KEY = 'sage_participant_session';
 
@@ -126,9 +125,8 @@ export default function Navbar() {
     <>
       <header id="navbar-root" className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
         <div className="container">
-          <Link to="/home" className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <img src={logoIcon} alt="S Logo" style={{ height: '36px', width: 'auto' }} />
-            <img src={logoText} alt="SAGE" style={{ height: '24px', width: 'auto', marginTop: '2px' }} />
+          <Link to="/home" className="nav-brand" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src={logoIcon} alt="SAGE Logo" style={{ height: '36px', width: 'auto' }} />
           </Link>
 
           <ul className="nav-links">
