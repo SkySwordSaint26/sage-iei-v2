@@ -3,6 +3,9 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
+import logoIcon from '../assets/Only S metallic Blue.png';
+import logoText from '../assets/SAGE TEXT METALLIC BLUE.png';
+
 const SAGE_AUTH_SESSION_KEY = 'sage_participant_session';
 
 export default function Navbar() {
@@ -123,9 +126,9 @@ export default function Navbar() {
     <>
       <header id="navbar-root" className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
         <div className="container">
-          <Link to="/home" className="nav-brand">
-            <div className="brand-icon-arc"></div>
-            <span>SAGE&nbsp;<span style={{ color: 'var(--cyan)' }}>1.0</span></span>
+          <Link to="/home" className="nav-brand" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <img src={logoIcon} alt="S Logo" style={{ height: '36px', width: 'auto' }} />
+            <img src={logoText} alt="SAGE" style={{ height: '24px', width: 'auto', marginTop: '2px' }} />
           </Link>
 
           <ul className="nav-links">
