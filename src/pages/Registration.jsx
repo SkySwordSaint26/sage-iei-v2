@@ -205,7 +205,7 @@ export default function Registration() {
           </div>
         </div>
       `);
-      setFormData({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: '', volunteerPass: '' });
+      setFormData(prev => ({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: prev.volunteerEmail, volunteerPass: prev.volunteerPass }));
       setSelectedTechEvents([]); setSelectedNonTechEvents([]); setSingleEvent(''); setScreenshotFile(null);
       formRef.current?.reset();
     } catch (err) {
