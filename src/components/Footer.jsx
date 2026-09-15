@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Link } from 'react-router-dom';
-import logoIcon from '../assets/Only S metallic Blue.png';
+import logoIcon from '../assets/SAGE TEXT METALLIC BLUE.png';
 
 const currentYear = new Date().getFullYear();
 

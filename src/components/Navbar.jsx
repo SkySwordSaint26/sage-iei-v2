@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { auth } from '../firebase-config.js';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 
-import logoIcon from '../assets/Only S metallic Blue.png';
+import logoIcon from '../assets/SAGE TEXT METALLIC BLUE.png';
 
 const SAGE_AUTH_SESSION_KEY = 'sage_participant_session';
 
