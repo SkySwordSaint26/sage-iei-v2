@@ -129,9 +129,11 @@ export default function Registration() {
     feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
     try {
-      let screenshotData = '';
-      if (screenshotFile) {
-        screenshotData = await new Promise((resolve, reject) => {
+      const [volunteer, idSnap, phoneSnap, screenshotData] = await Promise.all([
+        verifyVolunteer(formData.volunteerEmail, formData.volunteerPass),
+        getDocs(query(collection(db, 'users'), where('idNumber', '==', formData.idNumber))),
+        getDocs(query(collection(db, 'users'), where('contactNumber', '==', formData.contactNumber))),
+        screenshotFile ? new Promise((resolve, reject) => {
           const img = new Image();
           img.onload = () => {
             const MAX_WIDTH = 800;
@@ -144,16 +146,11 @@ export default function Registration() {
           };
           img.onerror = () => reject(new Error('Unable to read screenshot.'));
           img.src = URL.createObjectURL(screenshotFile);
-        });
-      }
+        }) : Promise.resolve('')
+      ]);
 
-      const volunteer = await verifyVolunteer(formData.volunteerEmail, formData.volunteerPass);
-
-      const idQuery = query(collection(db, 'users'), where('idNumber', '==', formData.idNumber));
-      if (!(await getDocs(idQuery)).empty) throw new Error('A participant with this College ID is already registered.');
-
-      const phoneQuery = query(collection(db, 'users'), where('contactNumber', '==', formData.contactNumber));
-      if (!(await getDocs(phoneQuery)).empty) throw new Error('A participant with this Contact Number is already registered.');
+      if (!idSnap.empty) throw new Error('A participant with this College ID is already registered.');
+      if (!phoneSnap.empty) throw new Error('A participant with this Contact Number is already registered.');
 
       const initialPassword = formData.idNumber.length < 6 ? formData.idNumber.padEnd(6, '0') : formData.idNumber;
       

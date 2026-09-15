@@ -188,26 +188,28 @@ export default function Login() {
 
       // Resolve login email (supports entering either College ID or Email)
       let loginEmail = trimmedId;
+      let cachedProfileDoc = null;
+      
       if (!trimmedId.includes('@')) {
-        // Query Firestore users by idNumber
-        const idQuery = query(collection(db, 'users'), where('idNumber', '==', trimmedId));
+        // Query Firestore users by idNumber using 'in' operator to avoid sequential queries
+        const searchValues = Array.from(new Set([trimmedId, trimmedId.toUpperCase()]));
+        const idQuery = query(collection(db, 'users'), where('idNumber', 'in', searchValues));
         const idSnap = await getDocs(idQuery);
 
         if (idSnap.empty) {
-          const idUpperQuery = query(collection(db, 'users'), where('idNumber', '==', trimmedId.toUpperCase()));
-          const idUpperSnap = await getDocs(idUpperQuery);
-          if (idUpperSnap.empty) {
-            throw new Error(`No registered account found with College ID "${trimmedId}". Please enter your registered email address.`);
-          } else {
-            loginEmail = idUpperSnap.docs[0].data().email;
-          }
-        } else {
-          loginEmail = idSnap.docs[0].data().email;
+          throw new Error(`No registered account found with College ID "${trimmedId}". Please enter your registered email address.`);
         }
+        
+        cachedProfileDoc = idSnap.docs[0];
+        loginEmail = cachedProfileDoc.data().email;
       }
 
       const userCredential = await signInWithEmailAndPassword(auth, loginEmail, trimmedPass);
-      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      
+      let userDoc = cachedProfileDoc;
+      if (!userDoc) {
+        userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      }
       
       if (!userDoc.exists()) {
         throw new Error("Participant profile not found in database.");
