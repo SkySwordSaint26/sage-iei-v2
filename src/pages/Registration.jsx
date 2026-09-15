@@ -177,22 +177,21 @@ export default function Registration() {
         }
       }
 
-      try {
-        await setDoc(doc(db, 'users', userCredential.user.uid), {
-          fullName: formData.name, idNumber: formData.idNumber, contactNumber: formData.contactNumber,
-          academicYear: formData.academicYear, email: formData.email, event: eventsList.join(', '), events: eventsList,
-          paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
-          screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
-          volunteerUid: volunteer.uid, authorizedByVolunteer: volunteer.name, authorizedByClub: volunteer.club,
-          initialPasswordSet: true, createdAt: new Date().toISOString()
-        });
-      } catch (firestoreErr) {
-        // Rollback: delete the Auth account so it doesn't become a ghost registration
+      // Fire-and-forget setDoc for instant UI transition
+      setDoc(doc(db, 'users', userCredential.user.uid), {
+        fullName: formData.name, idNumber: formData.idNumber, contactNumber: formData.contactNumber,
+        academicYear: formData.academicYear, email: formData.email, event: eventsList.join(', '), events: eventsList,
+        paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
+        screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
+        volunteerUid: volunteer.uid, authorizedByVolunteer: volunteer.name, authorizedByClub: volunteer.club,
+        initialPasswordSet: true, createdAt: new Date().toISOString()
+      }).catch(firestoreErr => {
+        // Background rollback: delete the Auth account so it doesn't become a ghost registration
         if (userCredential?.user) {
-          await deleteUser(userCredential.user).catch(() => {});
+          deleteUser(userCredential.user).catch(() => {});
         }
-        throw firestoreErr;
-      }
+        console.error('Background user creation failed:', firestoreErr);
+      });
 
       setFeedback(`
         <div class="glass-card" style="border-color:var(--emerald-accent); text-align:center; margin-top:1.5rem;">
@@ -206,7 +205,7 @@ export default function Registration() {
           </div>
         </div>
       `);
-      setFormData({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: '', volunteerPass: '' });
+      setFormData(prev => ({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: prev.volunteerEmail, volunteerPass: prev.volunteerPass }));
       setSelectedTechEvents([]); setSelectedNonTechEvents([]); setSingleEvent(''); setScreenshotFile(null);
       formRef.current?.reset();
     } catch (err) {

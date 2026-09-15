@@ -13,6 +13,9 @@ function getVolunteerAuthInstance() {
   return getAuth(existing || initializeApp(firebaseConfig, name));
 }
 
+let cachedVolunteer = null;
+let cachedCredentials = { email: '', password: '' };
+
 /**
  * Authenticates an individual volunteer by email + password.
  * Verifies they exist in the `volunteers` Firestore collection.
@@ -25,10 +28,17 @@ export async function verifyVolunteer(email, password) {
     throw new Error('Please enter your volunteer email and password.');
   }
 
+  const trimmedEmail = email.trim();
+
+  // Fast path: if the same credentials are used, return the cached result instantly (0ms network cost)
+  if (cachedVolunteer && cachedCredentials.email === trimmedEmail && cachedCredentials.password === password) {
+    return cachedVolunteer;
+  }
+
   const secondaryAuth = getVolunteerAuthInstance();
 
   try {
-    const cred = await signInWithEmailAndPassword(secondaryAuth, email.trim(), password);
+    const cred = await signInWithEmailAndPassword(secondaryAuth, trimmedEmail, password);
 
     // Fetch volunteer profile from Firestore
     const secondaryDb = getFirestore(secondaryAuth.app);
@@ -41,7 +51,13 @@ export async function verifyVolunteer(email, password) {
     }
 
     const data = volunteerDoc.data();
-    return { uid: cred.user.uid, name: data.name, email: data.email, club: data.club };
+    const volunteerObj = { uid: cred.user.uid, name: data.name, email: data.email, club: data.club };
+    
+    // Cache the successful authorization for subsequent registrations
+    cachedVolunteer = volunteerObj;
+    cachedCredentials = { email: trimmedEmail, password };
+
+    return volunteerObj;
   } catch (error) {
     await signOut(secondaryAuth).catch(() => {});
 
