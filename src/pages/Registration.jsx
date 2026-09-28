@@ -63,6 +63,10 @@ export default function Registration() {
       setSelectedNonTechEvents([]);
       setSingleEvent('');
     }
+    if (name === 'paymentMethod' && value !== 'online') {
+      setFormData(prev => ({ ...prev, transactionId: '' }));
+      setScreenshotFile(null);
+    }
   }, []);
 
   const handleTechChange = useCallback((e) => {
@@ -128,40 +132,45 @@ export default function Registration() {
     setFeedback(`<div class="glass-card" style="border-color:var(--cyan-primary); text-align:center; margin-top:1.5rem;"><h3 style="color:var(--cyan-primary);">AUTHENTICATING & SUBMITTING...</h3><p style="color:#91a1bd;">Verifying volunteer desk authorization and uploading registration details.</p></div>`);
     feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
+    const idNumber = formData.idNumber.trim().toUpperCase();
+    const email = formData.email.trim();
+
     try {
       const [volunteer, idSnap, phoneSnap, screenshotData] = await Promise.all([
         verifyVolunteer(formData.volunteerEmail, formData.volunteerPass),
-        getDocs(query(collection(db, 'users'), where('idNumber', '==', formData.idNumber))),
+        getDocs(query(collection(db, 'users'), where('idNumber', 'in', [...new Set([formData.idNumber.trim(), idNumber])]))),
         getDocs(query(collection(db, 'users'), where('contactNumber', '==', formData.contactNumber))),
         screenshotFile ? new Promise((resolve, reject) => {
           const img = new Image();
+          const url = URL.createObjectURL(screenshotFile);
           img.onload = () => {
-            const MAX_WIDTH = 800;
-            let width = img.width, height = img.height;
-            if (width > MAX_WIDTH) { height = Math.round(height * MAX_WIDTH / width); width = MAX_WIDTH; }
+            URL.revokeObjectURL(url);
+            // Cap the longest side so very tall screenshots stay well under Firestore's 1 MiB doc limit
+            const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+            const width = Math.round(img.width * scale), height = Math.round(img.height * scale);
             const canvas = document.createElement('canvas');
             canvas.width = width; canvas.height = height;
             canvas.getContext('2d').drawImage(img, 0, 0, width, height);
             resolve(canvas.toDataURL('image/jpeg', 0.6));
           };
-          img.onerror = () => reject(new Error('Unable to read screenshot.'));
-          img.src = URL.createObjectURL(screenshotFile);
+          img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Unable to read screenshot. Please upload a PNG or JPG image (iPhone HEIC photos are not supported).')); };
+          img.src = url;
         }) : Promise.resolve('')
       ]);
 
       if (!idSnap.empty) throw new Error('A participant with this College ID is already registered.');
       if (!phoneSnap.empty) throw new Error('A participant with this Contact Number is already registered.');
 
-      const initialPassword = formData.idNumber.length < 6 ? formData.idNumber.padEnd(6, '0') : formData.idNumber;
-      
+      const initialPassword = idNumber.length < 6 ? idNumber.padEnd(6, '0') : idNumber;
+
       let userCredential;
       try {
-        userCredential = await createUserWithEmailAndPassword(auth, formData.email, initialPassword);
+        userCredential = await createUserWithEmailAndPassword(auth, email, initialPassword);
       } catch (authErr) {
         if (authErr.code === 'auth/email-already-in-use') {
           // Self-healing: Check if this is a ghost account (Auth exists but no Firestore doc)
           try {
-            userCredential = await signInWithEmailAndPassword(auth, formData.email, initialPassword);
+            userCredential = await signInWithEmailAndPassword(auth, email, initialPassword);
             const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
             if (userDoc.exists()) {
               // Real registration already exists
@@ -177,21 +186,20 @@ export default function Registration() {
         }
       }
 
-      // Fire-and-forget setDoc for instant UI transition
-      setDoc(doc(db, 'users', userCredential.user.uid), {
-        fullName: formData.name, idNumber: formData.idNumber, contactNumber: formData.contactNumber,
-        academicYear: formData.academicYear, email: formData.email, event: eventsList.join(', '), events: eventsList,
-        paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
-        screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
-        volunteerUid: volunteer.uid, authorizedByVolunteer: volunteer.name, authorizedByClub: volunteer.club,
-        initialPasswordSet: true, createdAt: new Date().toISOString()
-      }).catch(firestoreErr => {
-        // Background rollback: delete the Auth account so it doesn't become a ghost registration
-        if (userCredential?.user) {
-          deleteUser(userCredential.user).catch(() => {});
-        }
-        console.error('Background user creation failed:', firestoreErr);
-      });
+      try {
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          fullName: formData.name, idNumber, contactNumber: formData.contactNumber,
+          academicYear: formData.academicYear, email, event: eventsList.join(', '), events: eventsList,
+          paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
+          screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
+          volunteerUid: volunteer.uid, authorizedByVolunteer: volunteer.name, authorizedByClub: volunteer.club,
+          initialPasswordSet: true, createdAt: new Date().toISOString()
+        });
+      } catch (firestoreErr) {
+        // Roll back the Auth account so it doesn't become a ghost registration
+        await deleteUser(userCredential.user).catch(() => {});
+        throw firestoreErr;
+      }
 
       setFeedback(`
         <div class="glass-card" style="border-color:var(--emerald-accent); text-align:center; margin-top:1.5rem;">
@@ -348,7 +356,7 @@ export default function Registration() {
               </div>
               <div className="form-group">
                 <label className="form-label">Payment Screenshot</label>
-                <input type="file" className="form-input" accept="image/*" onChange={e => setScreenshotFile(e.target.files[0])} required />
+                <input type="file" className="form-input" accept="image/png,image/jpeg,image/webp" onChange={e => setScreenshotFile(e.target.files[0])} required />
               </div>
             </div>
           )}
