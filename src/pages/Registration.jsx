@@ -299,7 +299,6 @@ export default function Registration() {
                       <input type="checkbox" value={opt.title} checked={selectedNonTechEvents.includes(opt.title)} onChange={handleNonTechChange} style={{ width: '18px', height: '18px', accentColor: opt.accent }} />
                       <div>
                         <div style={{ color: '#fff', fontWeight: 700 }}>{opt.title}</div>
-                        <div style={{ fontSize: '0.74rem', color: opt.accent }}>{opt.type}</div>
                       </div>
                     </label>
                   ))}
@@ -314,7 +313,6 @@ export default function Registration() {
                       <input type="checkbox" value={opt.title} checked={selectedTechEvents.includes(opt.title)} onChange={handleTechChange} style={{ width: '18px', height: '18px', accentColor: 'var(--cyan)' }} />
                       <div>
                         <div style={{ color: '#fff', fontWeight: 700 }}>{opt.title}</div>
-                        <div style={{ fontSize: '0.74rem', color: 'var(--cyan)' }}>{opt.type}</div>
                       </div>
                     </label>
                   ))}
