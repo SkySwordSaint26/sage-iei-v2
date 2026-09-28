@@ -8,8 +8,7 @@ import {
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
-  onAuthStateChanged,
-  signOut
+  onAuthStateChanged
 } from "firebase/auth";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { handleFirebaseError } from '../services/error-service.js';
@@ -229,7 +228,17 @@ export default function Login() {
 
       // Ensure persistence is applied BEFORE signing in
       await persistencePromise;
-      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, trimmedPass);
+      // Store the flag before sign-in: onAuthStateChanged fires during sign-in and reads it to decide
+      // whether to write the session to localStorage
+      localStorage.setItem(SAGE_REMEMBER_FLAG_KEY, String(rememberMe));
+      let userCredential;
+      try {
+        userCredential = await signInWithEmailAndPassword(auth, loginEmail, trimmedPass);
+      } catch (err) {
+        // Initial password is the College ID in capitals; accept it typed in lowercase too
+        if (err.code !== 'auth/invalid-credential' || trimmedPass === trimmedPass.toUpperCase()) throw err;
+        userCredential = await signInWithEmailAndPassword(auth, loginEmail, trimmedPass.toUpperCase());
+      }
       
       let userDoc = cachedProfileDoc;
       if (!userDoc) {
@@ -255,13 +264,11 @@ export default function Login() {
       if (rememberMe) {
         localStorage.setItem(SAGE_AUTH_SESSION_KEY, JSON.stringify(sessionPayload));
         localStorage.setItem(SAGE_REMEMBERED_ID_KEY, trimmedId);
-        localStorage.setItem(SAGE_REMEMBER_FLAG_KEY, 'true');
         sessionStorage.setItem(SAGE_AUTH_SESSION_KEY, JSON.stringify(sessionPayload));
       } else {
         sessionStorage.setItem(SAGE_AUTH_SESSION_KEY, JSON.stringify(sessionPayload));
         localStorage.removeItem(SAGE_AUTH_SESSION_KEY);
         localStorage.removeItem(SAGE_REMEMBERED_ID_KEY);
-        localStorage.setItem(SAGE_REMEMBER_FLAG_KEY, 'false');
       }
 
       setProfile(profileData);
@@ -272,27 +279,6 @@ export default function Login() {
     } finally {
       setLoginLoading(false);
     }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (err) {
-      console.warn("Logout error:", err);
-    }
-
-    localStorage.removeItem(SAGE_AUTH_SESSION_KEY);
-    sessionStorage.removeItem(SAGE_AUTH_SESSION_KEY);
-
-    if (!rememberMe) {
-      localStorage.removeItem(SAGE_REMEMBERED_ID_KEY);
-      localStorage.removeItem(SAGE_REMEMBER_FLAG_KEY);
-      setIdentifier('');
-    }
-
-    setProfile(null);
-    setPassword('');
-    setLoginFeedback(null);
   };
 
   const handleResetPassword = async (e) => {
@@ -601,9 +587,6 @@ export default function Login() {
               <h4 style={{ color: '#fff', margin: '0 0 0.25rem', fontSize: '1rem' }}>🎫 DIGITAL SAGE 1.0 ENTRY PASS</h4>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: 0 }}>Show this pass at registration verification desks and individual event labs.</p>
             </div>
-            <button className="btn btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.8rem' }} onClick={() => alert('✓ Digital Entry Pass Verified & Synced with College ID.')}>
-              DOWNLOAD BADGE (PDF) ↓
-            </button>
           </div>
         </div>
       )}

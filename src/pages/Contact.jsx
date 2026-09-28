@@ -94,6 +94,9 @@ export default function Contact() {
               <a href="https://www.linkedin.com/company/ie-i-team-bvm/" target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
                 LinkedIn ↗
               </a>
+              <a href="https://chat.whatsapp.com/IsAsvkeNZlDHv7NbPswKXS" target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.8rem' }}>
+                WhatsApp Community ↗
+              </a>
             </div>
           </div>
         </div>
