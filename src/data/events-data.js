@@ -57,8 +57,9 @@ export const EVENTS_DATA = [
     concept: 'A practical robotics event where participants will learn about line-following technology, assemble and program a robot, and compete to complete a track in the shortest time.',
     tags: ['ASSEMBLY & PROGRAMMING', 'LINE FOLLOWING TRACK'],
     rounds: [
-      { num: '01', name: 'LEARN, BUILD & TEST', activity: 'Assembly & Programming', desc: 'Teams receive a Line Follower kit and have 2 hours to learn the concepts, assemble, program, and troubleshoot their robot to follow a track.' },
-      { num: '02', name: 'FINAL CHALLENGE', activity: 'Line Following Competition', desc: 'All completed robots participate in the final challenge. The robot that successfully completes the track in the shortest time will be declared the winner.' },
+      { num: '01', name: 'QUIZ COMPETITION', activity: 'Technical & Aptitude Quiz', desc: 'We are organising an exciting Quiz Competition designed to challenge your knowledge, logical thinking, problem-solving abilities, and awareness across a variety of topics. The quiz will include questions ranging from technical concepts and engineering fundamentals to general aptitude and general awareness, ensuring an engaging and competitive experience for everyone.' },
+      { num: '02', name: 'LEARN, BUILD & TEST', activity: 'Assembly & Programming', desc: 'Teams receive a Line Follower kit and have 2 hours to learn the concepts, assemble, program, and troubleshoot their robot to follow a track.' },
+      { num: '03', name: 'FINAL CHALLENGE', activity: 'Line Following Competition', desc: 'All completed robots participate in the final challenge. The robot that successfully completes the track in the shortest time will be declared the winner.' },
     ],
   },
   {
