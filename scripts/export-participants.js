@@ -20,7 +20,7 @@ const EXPORTS = [
 ];
 
 const COLUMNS = [
-  'fullName', 'idNumber', 'email', 'contactNumber', 'academicYear', 'event',
+  'fullName', 'idNumber', 'email', 'contactNumber', 'academicYear', 'branch', 'event',
   'paymentMethod', 'amount', 'transactionId', 'authorizedByVolunteer', 'authorizedByClub', 'createdAt',
 ];
 

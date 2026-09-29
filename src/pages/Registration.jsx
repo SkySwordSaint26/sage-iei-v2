@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { auth, db } from '../firebase-config.js';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, deleteUser } from "firebase/auth";
@@ -18,16 +18,17 @@ function calculateEventFee(count) {
   return 180; // All 7 Events
 }
 
-const ALL_NON_TECH_OPTIONS = EVENTS_DATA.filter(e => e.category === 'non-tech');
+const TECH_OPTIONS = EVENTS_DATA.filter(e => e.category === 'tech');
+const NON_TECH_OPTIONS = EVENTS_DATA.filter(e => e.category === 'non-tech');
+const BRANCHES = ['Mechanical', 'Production', 'Civil', 'Computer', 'IT', 'Electronics', 'Electronics & Communication', 'Electrical'];
 
 export default function Registration() {
   const [formData, setFormData] = useState({
-    name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: '', volunteerPass: ''
+    name: '', idNumber: '', contactNumber: '', academicYear: '', branch: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: '', volunteerPass: ''
   });
-  
+
   const [selectedTechEvents, setSelectedTechEvents] = useState([]);
   const [selectedNonTechEvents, setSelectedNonTechEvents] = useState([]);
-  const [singleEvent, setSingleEvent] = useState('');
   const [screenshotFile, setScreenshotFile] = useState(null);
   
   const [loading, setLoading] = useState(false);
@@ -37,32 +38,14 @@ export default function Registration() {
   const formRef = useRef(null);
   const feedbackRef = useRef(null);
 
-  const isPG = formData.academicYear === 'PG';
-  const isFirstOrSecondYear = formData.academicYear === '1st Year' || formData.academicYear === '2nd Year';
-  const isThirdYear = formData.academicYear === '3rd Year';
-  const isFourthYear = formData.academicYear === '4th Year';
-  const hasMandateEvents = !isPG && formData.academicYear !== '';
-
-  const compulsoryEvent = isFirstOrSecondYear ? 'ARC FORGE' : 'MISSION: HIRE';
-  const minNonTechRequired = isFirstOrSecondYear ? 2 : (isThirdYear ? 1 : 0);
-  const minTechRequired = isFirstOrSecondYear ? 2 : 3;
-
-  const techOptions = useMemo(() => {
-    return EVENTS_DATA.filter(e => e.category === 'tech' && !(isFirstOrSecondYear && e.title === 'ARC FORGE'));
-  }, [isFirstOrSecondYear]);
-
-  const availableNonTechOptions = useMemo(() => {
-    return (isThirdYear || isFourthYear) ? ALL_NON_TECH_OPTIONS.filter(e => e.title !== 'MISSION: HIRE') : ALL_NON_TECH_OPTIONS;
-  }, [isThirdYear, isFourthYear]);
+  // Mechanical & Production 1st–3rd year: min 2 non-tech + min 2 tech. Everyone else: any events, at least 1.
+  const hasMinimums = (formData.branch === 'Mechanical' || formData.branch === 'Production') && ['1st Year', '2nd Year', '3rd Year'].includes(formData.academicYear);
+  const minNonTechRequired = hasMinimums ? 2 : 0;
+  const minTechRequired = hasMinimums ? 2 : 0;
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    if (name === 'academicYear') {
-      setSelectedTechEvents([]);
-      setSelectedNonTechEvents([]);
-      setSingleEvent('');
-    }
     if (name === 'paymentMethod' && value !== 'online') {
       setFormData(prev => ({ ...prev, transactionId: '' }));
       setScreenshotFile(null);
@@ -82,39 +65,29 @@ export default function Registration() {
   }, []);
 
 
-  let selectedCount = 0;
-  if (hasMandateEvents) {
-    selectedCount = 1 + selectedTechEvents.length + selectedNonTechEvents.length;
-  } else if (isPG) {
-    selectedCount = singleEvent ? 1 : 0;
-  }
+  const selectedCount = selectedTechEvents.length + selectedNonTechEvents.length;
   const feeAmount = calculateEventFee(selectedCount);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFeedback(null);
 
-    let eventsList = [];
-    if (hasMandateEvents) {
-      if (selectedNonTechEvents.length < minNonTechRequired) {
-        setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ NON-TECH EVENT SELECTION INCOMPLETE</h3><p style="color:#91a1bd;">You must select at least <strong>${minNonTechRequired} Non-Tech Events</strong>.</p></div>`);
-        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
-      if (selectedTechEvents.length < minTechRequired) {
-        setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ TECH EVENT SELECTION INCOMPLETE</h3><p style="color:#91a1bd;">You must select at least <strong>${minTechRequired} Additional Tech Events</strong>.</p></div>`);
-        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
-      eventsList = [compulsoryEvent, ...selectedNonTechEvents, ...selectedTechEvents];
-    } else if (isPG) {
-      if (!singleEvent) {
-        setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ EVENT SELECTION REQUIRED</h3><p style="color:#91a1bd;">Please choose an event.</p></div>`);
-        feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
-      eventsList = [singleEvent];
+    if (selectedNonTechEvents.length < minNonTechRequired) {
+      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ NON-TECH EVENT SELECTION INCOMPLETE</h3><p style="color:#91a1bd;">You must select at least <strong>${minNonTechRequired} Non-Tech Events</strong>.</p></div>`);
+      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
+    if (selectedTechEvents.length < minTechRequired) {
+      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ TECH EVENT SELECTION INCOMPLETE</h3><p style="color:#91a1bd;">You must select at least <strong>${minTechRequired} Tech Events</strong>.</p></div>`);
+      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    if (selectedCount === 0) {
+      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ EVENT SELECTION REQUIRED</h3><p style="color:#91a1bd;">Please select at least <strong>1 event</strong>.</p></div>`);
+      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    const eventsList = [...selectedNonTechEvents, ...selectedTechEvents];
 
     if (!formData.volunteerEmail || !formData.volunteerPass) {
       setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ VOLUNTEER AUTHORIZATION REQUIRED</h3><p style="color:#91a1bd;">Please enter volunteer email and password.</p></div>`);
@@ -189,7 +162,7 @@ export default function Registration() {
       try {
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           fullName: formData.name, idNumber, contactNumber: formData.contactNumber,
-          academicYear: formData.academicYear, email, event: eventsList.join(', '), events: eventsList,
+          academicYear: formData.academicYear, branch: formData.branch, email, event: eventsList.join(', '), events: eventsList,
           paymentMethod: formData.paymentMethod, amount: feeAmount, transactionId: formData.transactionId,
           screenshotData, screenshotFileName: screenshotFile?.name || '', screenshotContentType: screenshotFile?.type || '',
           volunteerUid: volunteer.uid, authorizedByVolunteer: volunteer.name, authorizedByClub: volunteer.club,
@@ -213,8 +186,8 @@ export default function Registration() {
           </div>
         </div>
       `);
-      setFormData(prev => ({ name: '', idNumber: '', contactNumber: '', academicYear: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: prev.volunteerEmail, volunteerPass: prev.volunteerPass }));
-      setSelectedTechEvents([]); setSelectedNonTechEvents([]); setSingleEvent(''); setScreenshotFile(null);
+      setFormData(prev => ({ name: '', idNumber: '', contactNumber: '', academicYear: '', branch: '', email: '', paymentMethod: '', transactionId: '', volunteerEmail: prev.volunteerEmail, volunteerPass: prev.volunteerPass }));
+      setSelectedTechEvents([]); setSelectedNonTechEvents([]); setScreenshotFile(null);
       formRef.current?.reset();
     } catch (err) {
       const el = document.createElement('div');
@@ -257,44 +230,32 @@ export default function Registration() {
                 <option value="2nd Year">2nd Year</option>
                 <option value="3rd Year">3rd Year</option>
                 <option value="4th Year">4th Year</option>
-                <option value="PG">Postgraduate</option>
               </select>
             </div>
           </div>
 
-          <div className="form-group"><label className="form-label">Registered Email</label><input type="email" name="email" className="form-input" placeholder="e.g. name@example.com" required value={formData.email} onChange={handleChange} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1.25rem', marginTop: '0.5rem' }}>
+            <div className="form-group">
+              <label className="form-label">Branch</label>
+              <select name="branch" className="form-select" required value={formData.branch} onChange={handleChange}>
+                <option value="">-- Select Branch --</option>
+                {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
+              </select>
+            </div>
+            <div className="form-group"><label className="form-label">Registered Email</label><input type="email" name="email" className="form-input" placeholder="e.g. name@example.com" required value={formData.email} onChange={handleChange} /></div>
+          </div>
 
           {/* EVENT SELECTION SECTIONS */}
 
-          {isPG && (
-            <div className="form-group">
-              <label className="form-label">Select Event</label>
-              <select className="form-select" value={singleEvent} onChange={e => setSingleEvent(e.target.value)} required>
-                <option value="">-- Choose an Event --</option>
-                {EVENTS_DATA.map(e => <option key={e.id} value={e.title}>{e.title}</option>)}
-              </select>
-            </div>
-          )}
-
-          {hasMandateEvents && (
+          {formData.academicYear && formData.branch && (
             <div style={{ marginTop: '2.5rem' }}>
               <h3 style={{ color: 'var(--cyan-primary)', marginBottom: '1.5rem' }}>EVENT SELECTION MODULES</h3>
-              
-              <div style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">01 // COMPULSORY EVENT</label>
-                <div className="glass-card" style={{ borderColor: 'var(--emerald)', background: 'rgba(0,206,255,0.04)', padding: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <input type="checkbox" checked disabled style={{ width: '20px', height: '20px', accentColor: 'var(--cyan)' }} />
-                  <div>
-                    <h4 style={{ color: '#fff', margin: 0 }}>{compulsoryEvent}</h4>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>Pre-selected compulsory module for your academic year.</p>
-                  </div>
-                </div>
-              </div>
+              {!hasMinimums && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Choose any events you like — at least 1.</p>}
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">02 // NON-TECH EVENTS (MIN {minNonTechRequired})</label>
+                <label className="form-label">01 // NON-TECH EVENTS{hasMinimums && ` (MIN ${minNonTechRequired})`}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-                  {availableNonTechOptions.map(opt => (
+                  {NON_TECH_OPTIONS.map(opt => (
                     <label key={opt.id} className="glass-card" style={{ padding: '1rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', borderColor: selectedNonTechEvents.includes(opt.title) ? opt.accent : 'rgba(255,255,255,0.1)', background: selectedNonTechEvents.includes(opt.title) ? 'rgba(139,61,255,0.08)' : 'rgba(255,255,255,0.02)' }}>
                       <input type="checkbox" value={opt.title} checked={selectedNonTechEvents.includes(opt.title)} onChange={handleNonTechChange} style={{ width: '18px', height: '18px', accentColor: opt.accent }} />
                       <div>
@@ -306,9 +267,9 @@ export default function Registration() {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">03 // TECH EVENTS (MIN {minTechRequired})</label>
+                <label className="form-label">02 // TECH EVENTS{hasMinimums && ` (MIN ${minTechRequired})`}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
-                  {techOptions.map(opt => (
+                  {TECH_OPTIONS.map(opt => (
                     <label key={opt.id} className="glass-card" style={{ padding: '1rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', borderColor: selectedTechEvents.includes(opt.title) ? 'var(--cyan)' : 'rgba(255,255,255,0.1)', background: selectedTechEvents.includes(opt.title) ? 'rgba(0,206,255,0.08)' : 'rgba(255,255,255,0.02)' }}>
                       <input type="checkbox" value={opt.title} checked={selectedTechEvents.includes(opt.title)} onChange={handleTechChange} style={{ width: '18px', height: '18px', accentColor: 'var(--cyan)' }} />
                       <div>
