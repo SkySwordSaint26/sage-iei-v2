@@ -38,11 +38,6 @@ export default function Registration() {
   const formRef = useRef(null);
   const feedbackRef = useRef(null);
 
-  // Mechanical & Production 1st–3rd year: min 2 non-tech + min 2 tech. Everyone else: any events, at least 1.
-  const hasMinimums = (formData.branch === 'Mechanical' || formData.branch === 'Production') && ['1st Year', '2nd Year', '3rd Year'].includes(formData.academicYear);
-  const minNonTechRequired = hasMinimums ? 2 : 0;
-  const minTechRequired = hasMinimums ? 2 : 0;
-
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -72,16 +67,6 @@ export default function Registration() {
     e.preventDefault();
     setFeedback(null);
 
-    if (selectedNonTechEvents.length < minNonTechRequired) {
-      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ NON-TECH EVENT SELECTION INCOMPLETE</h3><p style="color:#91a1bd;">You must select at least <strong>${minNonTechRequired} Non-Tech Events</strong>.</p></div>`);
-      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-    if (selectedTechEvents.length < minTechRequired) {
-      setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ TECH EVENT SELECTION INCOMPLETE</h3><p style="color:#91a1bd;">You must select at least <strong>${minTechRequired} Tech Events</strong>.</p></div>`);
-      feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
     if (selectedCount === 0) {
       setFeedback(`<div class="glass-card" style="border-color:#ff4d4d; text-align:center; margin-top:1.5rem;"><h3 style="color:#ff4d4d;">✕ EVENT SELECTION REQUIRED</h3><p style="color:#91a1bd;">Please select at least <strong>1 event</strong>.</p></div>`);
       feedbackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -250,10 +235,10 @@ export default function Registration() {
           {formData.academicYear && formData.branch && (
             <div style={{ marginTop: '2.5rem' }}>
               <h3 style={{ color: 'var(--cyan-primary)', marginBottom: '1.5rem' }}>EVENT SELECTION MODULES</h3>
-              {!hasMinimums && <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Choose any events you like — at least 1.</p>}
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>Choose any events you like — at least 1.</p>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">01 // NON-TECH EVENTS{hasMinimums && ` (MIN ${minNonTechRequired})`}</label>
+                <label className="form-label">01 // NON-TECH EVENTS</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
                   {NON_TECH_OPTIONS.map(opt => (
                     <label key={opt.id} className="glass-card" style={{ padding: '1rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', borderColor: selectedNonTechEvents.includes(opt.title) ? opt.accent : 'rgba(255,255,255,0.1)', background: selectedNonTechEvents.includes(opt.title) ? 'rgba(139,61,255,0.08)' : 'rgba(255,255,255,0.02)' }}>
@@ -267,7 +252,7 @@ export default function Registration() {
               </div>
 
               <div style={{ marginBottom: '1.5rem' }}>
-                <label className="form-label">02 // TECH EVENTS{hasMinimums && ` (MIN ${minTechRequired})`}</label>
+                <label className="form-label">02 // TECH EVENTS</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
                   {TECH_OPTIONS.map(opt => (
                     <label key={opt.id} className="glass-card" style={{ padding: '1rem', cursor: 'pointer', display: 'flex', gap: '0.75rem', borderColor: selectedTechEvents.includes(opt.title) ? 'var(--cyan)' : 'rgba(255,255,255,0.1)', background: selectedTechEvents.includes(opt.title) ? 'rgba(0,206,255,0.08)' : 'rgba(255,255,255,0.02)' }}>
