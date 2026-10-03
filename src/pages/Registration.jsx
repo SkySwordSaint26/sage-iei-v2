@@ -7,6 +7,9 @@ import { handleFirebaseError } from '../services/error-service.js';
 import { verifyVolunteer } from '../services/volunteer-auth.js';
 import { EVENTS_DATA } from '../data/events-data.js';
 
+// Flip to false to reopen the registration form
+const REGISTRATION_CLOSED = true;
+
 function calculateEventFee(count) {
   if (count <= 0) return 0;
   if (count === 1) return 40;
@@ -182,6 +185,16 @@ export default function Registration() {
       setLoading(false);
     }
   };
+
+  if (REGISTRATION_CLOSED) return (
+    <section>
+      <div className="section-header">
+        <div className="badge-hud">ONLINE PORTAL</div>
+        <h2>REGISTRATION CLOSED</h2>
+        <p>Registrations for SAGE 1.0 are now closed. Already registered? <Link to="/login" style={{ color: 'var(--cyan)' }}>Log in</Link> to view your events.</p>
+      </div>
+    </section>
+  );
 
   return (
     <section>
